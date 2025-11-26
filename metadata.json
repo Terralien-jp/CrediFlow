@@ -1,0 +1,5 @@
+{
+  "name": "CrediFlow",
+  "description": "A smart credit card payment scheduler and bank balance manager. Visualize your monthly cash flow, calculate required funds per bank account, and automate data entry with Gemini AI.",
+  "requestFramePermissions": []
+}
