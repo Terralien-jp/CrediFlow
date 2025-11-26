@@ -4,7 +4,7 @@ import { Dashboard } from './components/Dashboard';
 import { CalendarView } from './components/CalendarView';
 import { CardManager } from './components/CardManager';
 import { Card, Payment, BankSummary, ViewMode, getActualDate } from './types';
-import { addMonths } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 
 const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -37,6 +37,13 @@ const App: React.FC = () => {
     ];
   });
 
+  // Bank Readiness State (Checkmarks for fund preparation)
+  // Key format: "bankSummaryId_yyyy-MM"
+  const [bankReadiness, setBankReadiness] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('crediflow_bank_readiness');
+    return saved ? JSON.parse(saved) : {};
+  });
+
   // Persistence
   useEffect(() => {
     localStorage.setItem('crediflow_cards', JSON.stringify(cards));
@@ -50,10 +57,22 @@ const App: React.FC = () => {
     localStorage.setItem('crediflow_banks', JSON.stringify(savedBanks));
   }, [savedBanks]);
 
+  useEffect(() => {
+    localStorage.setItem('crediflow_bank_readiness', JSON.stringify(bankReadiness));
+  }, [bankReadiness]);
+
   const handleAddBank = (bankName: string) => {
     if (!savedBanks.includes(bankName)) {
       setSavedBanks(prev => [...prev, bankName]);
     }
+  };
+
+  const toggleBankReadiness = (bankId: string) => {
+    const key = `${bankId}_${format(currentDate, 'yyyy-MM')}`;
+    setBankReadiness(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
 
@@ -190,6 +209,8 @@ const App: React.FC = () => {
               onTogglePaid={togglePaymentPaidStatus}
               payments={payments}
               onMonthChange={setCurrentDate}
+              bankReadiness={bankReadiness}
+              onToggleBankReadiness={toggleBankReadiness}
             />
           )}
 

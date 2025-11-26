@@ -3,7 +3,7 @@ import { Card, BankSummary, Payment } from '../types';
 import { format, addMonths } from 'date-fns';
 import ja from 'date-fns/locale/ja';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Wallet, AlertCircle, CheckCircle2, Users, Building2, Circle, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { Wallet, AlertCircle, CheckCircle2, Users, Building2, Circle, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { generateFinancialAdvice } from '../services/geminiService';
 
 interface DashboardProps {
@@ -13,6 +13,8 @@ interface DashboardProps {
   onTogglePaid: (id: string) => void;
   payments: Payment[]; 
   onMonthChange: (date: Date) => void;
+  bankReadiness: Record<string, boolean>;
+  onToggleBankReadiness: (bankId: string) => void;
 }
 
 const COLORS = ['#0ea5e9', '#10b981', '#6366f1', '#f43f5e', '#f59e0b', '#8b5cf6'];
@@ -23,7 +25,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   currentDate, 
   onTogglePaid,
   payments,
-  onMonthChange
+  onMonthChange,
+  bankReadiness,
+  onToggleBankReadiness
 }) => {
   const [advice, setAdvice] = useState<string | null>(null);
   const [loadingAdvice, setLoadingAdvice] = useState(false);
@@ -192,6 +196,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           ) : (
             bankSummaries.map((bank, idx) => {
+                const readinessKey = `${bank.id}_${format(currentDate, 'yyyy-MM')}`;
+                const isReady = bankReadiness[readinessKey];
+
                 // Group payments by month (yyyy-MM)
                 const groupedPayments = bank.payments.reduce((acc, p) => {
                     const key = `${p.year}-${String(p.month).padStart(2, '0')}`;
@@ -203,26 +210,62 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 const sortedGroupKeys = Object.keys(groupedPayments).sort();
 
                 return (
-                  <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3">
-                    <div className="flex justify-between items-center border-b border-slate-50 pb-2">
+                  <div key={idx} className={`
+                    p-4 rounded-xl shadow-sm border flex flex-col gap-3 transition-colors
+                    ${isReady ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'}
+                  `}>
+                    <div className="flex justify-between items-start border-b border-slate-200/50 pb-2">
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-800">{bank.bankName}</span>
-                        <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
-                          <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">{bank.accountHolder}</span>
+                        <span className={`font-bold ${isReady ? 'text-emerald-900' : 'text-slate-800'}`}>
+                          {bank.bankName}
+                        </span>
+                        <div className="flex items-center gap-1 text-xs mt-0.5">
+                          <span className={`px-1.5 py-0.5 rounded font-medium ${isReady ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                            {bank.accountHolder}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="font-bold text-xl text-slate-900 block">¥{bank.totalAmount.toLocaleString()}</span>
-                        <span className="text-[10px] text-slate-400">2ヶ月合計</span>
+                      
+                      <div className="flex flex-col items-end gap-2">
+                        {/* Check Readiness Button */}
+                        <button 
+                          onClick={() => onToggleBankReadiness(bank.id)}
+                          className={`
+                            flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full border transition
+                            ${isReady 
+                                ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600' 
+                                : 'bg-white text-slate-400 border-slate-300 hover:text-emerald-500 hover:border-emerald-500'
+                            }
+                          `}
+                        >
+                            <Check className="w-3 h-3" />
+                            {isReady ? '残高OK' : '残高確認'}
+                        </button>
+                        <div className="text-right">
+                            <span className={`font-bold text-xl block ${isReady ? 'text-emerald-700' : 'text-slate-900'}`}>
+                              ¥{bank.totalAmount.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-slate-400">2ヶ月合計</span>
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="text-xs text-slate-600 flex items-center gap-1 bg-amber-50 p-2 rounded-md border border-amber-100">
-                      <AlertCircle className="w-3 h-3 text-amber-600" />
-                      <span>直近の準備期限: </span>
-                      <span className="font-bold text-slate-800">
-                        {format(bank.earliestPaymentDate, 'M月d日 (E)', { locale: ja })}
+                    <div className={`text-xs flex items-center gap-1 p-2 rounded-md border 
+                        ${isReady ? 'bg-emerald-100/50 border-emerald-100' : 'bg-amber-50 border-amber-100'}
+                    `}>
+                      {isReady ? (
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      ) : (
+                        <AlertCircle className="w-3 h-3 text-amber-600" />
+                      )}
+                      <span className={isReady ? 'text-emerald-800' : 'text-slate-600'}>
+                         {isReady ? '準備完了済みです' : '直近の準備期限: '}
                       </span>
+                      {!isReady && (
+                        <span className="font-bold text-slate-800">
+                            {format(bank.earliestPaymentDate, 'M月d日 (E)', { locale: ja })}
+                        </span>
+                      )}
                     </div>
 
                     <div className="space-y-3 mt-1">
@@ -231,26 +274,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         const paymentsInGroup = groupedPayments[key];
                         return (
                           <div key={key}>
-                            <h4 className="text-[10px] font-bold text-slate-500 mb-1 border-l-2 border-slate-200 pl-2">
+                            <h4 className={`text-[10px] font-bold mb-1 border-l-2 pl-2 ${isReady ? 'text-emerald-700 border-emerald-300' : 'text-slate-500 border-slate-200'}`}>
                                 {format(new Date(year, month), 'yyyy年 M月分', { locale: ja })}
                             </h4>
                             <div className="space-y-1">
                                 {paymentsInGroup.map(p => {
                                     const card = cards.find(c => c.id === p.cardId);
                                     return (
-                                        <div key={p.id} className="flex justify-between items-center text-xs text-slate-600 py-1 pl-2">
+                                        <div key={p.id} className={`flex justify-between items-center text-xs py-1 pl-2 ${isReady ? 'text-emerald-800' : 'text-slate-600'}`}>
                                             <div className={`flex flex-col ${p.isPaid ? 'opacity-50' : ''}`}>
                                                 <span className="flex items-center gap-2">
                                                     <span className={`w-2 h-2 rounded-full ${card?.color || 'bg-gray-400'}`}></span>
                                                     <span className={`font-medium ${p.isPaid ? 'line-through' : ''}`}>{card?.name}</span>
-                                                    <span className="text-[10px] text-slate-400">({card?.owner})</span>
+                                                    <span className={`text-[10px] ${isReady ? 'text-emerald-600' : 'text-slate-400'}`}>({card?.owner})</span>
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className={`font-medium ${p.isPaid ? 'line-through text-slate-300' : 'text-slate-700'}`}>¥{p.amount.toLocaleString()}</span>
+                                                <span className={`font-medium ${p.isPaid ? 'line-through opacity-60' : ''}`}>¥{p.amount.toLocaleString()}</span>
                                                 <button 
                                                 onClick={() => onTogglePaid(p.id)}
-                                                className="text-slate-300 hover:text-emerald-500 transition focus:outline-none p-1"
+                                                className={`transition focus:outline-none p-1 ${isReady ? 'text-emerald-400 hover:text-emerald-600' : 'text-slate-300 hover:text-emerald-500'}`}
                                                 title={p.isPaid ? "未払に戻す" : "支払済にする"}
                                                 >
                                                 {p.isPaid ? (

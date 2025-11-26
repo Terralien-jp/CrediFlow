@@ -90,6 +90,7 @@ export const CardManager: React.FC<CardManagerProps> = ({
     setNewCard(prev => ({
         ...prev, 
         owner: val,
+        paymentSourceOwner: val
     }));
   };
 
