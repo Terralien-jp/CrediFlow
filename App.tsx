@@ -28,6 +28,15 @@ const App: React.FC = () => {
      return saved ? JSON.parse(saved) : [];
   });
 
+  // Bank Ledger (List of known banks)
+  const [savedBanks, setSavedBanks] = useState<string[]>(() => {
+    const saved = localStorage.getItem('crediflow_banks');
+    return saved ? JSON.parse(saved) : [
+      '楽天銀行', '三井住友銀行', '三菱UFJ銀行', 'みずほ銀行', 'ゆうちょ銀行', 
+      '住信SBIネット銀行', 'PayPay銀行', 'ソニー銀行', 'auじぶん銀行'
+    ];
+  });
+
   // Persistence
   useEffect(() => {
     localStorage.setItem('crediflow_cards', JSON.stringify(cards));
@@ -36,6 +45,16 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('crediflow_payments', JSON.stringify(payments));
   }, [payments]);
+
+  useEffect(() => {
+    localStorage.setItem('crediflow_banks', JSON.stringify(savedBanks));
+  }, [savedBanks]);
+
+  const handleAddBank = (bankName: string) => {
+    if (!savedBanks.includes(bankName)) {
+      setSavedBanks(prev => [...prev, bankName]);
+    }
+  };
 
 
   // --- Logic to Aggregate Data ---
@@ -192,6 +211,8 @@ const App: React.FC = () => {
               setPayments={setPayments}
               currentDate={currentDate}
               onTogglePaid={togglePaymentPaidStatus}
+              savedBanks={savedBanks}
+              onAddBank={handleAddBank}
             />
           )}
         </div>

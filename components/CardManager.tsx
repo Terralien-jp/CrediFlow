@@ -12,6 +12,8 @@ interface CardManagerProps {
   setPayments: React.Dispatch<React.SetStateAction<Payment[]>>;
   currentDate: Date;
   onTogglePaid: (id: string) => void;
+  savedBanks: string[];
+  onAddBank: (bankName: string) => void;
 }
 
 // Helper component for Day Selection
@@ -33,7 +35,16 @@ const DaySelect = ({ value, onChange, label }: { value: number | undefined, onCh
 
 const formatDay = (day: number) => day === END_OF_MONTH ? '月末' : `${day}日`;
 
-export const CardManager: React.FC<CardManagerProps> = ({ cards, setCards, payments, setPayments, currentDate, onTogglePaid }) => {
+export const CardManager: React.FC<CardManagerProps> = ({ 
+  cards, 
+  setCards, 
+  payments, 
+  setPayments, 
+  currentDate, 
+  onTogglePaid,
+  savedBanks,
+  onAddBank
+}) => {
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [newCard, setNewCard] = useState<Partial<Card>>({ color: CARD_COLORS[0], owner: '自分', paymentSourceOwner: '自分', closingDay: 1, paymentDay: 27 });
   
@@ -49,6 +60,12 @@ export const CardManager: React.FC<CardManagerProps> = ({ cards, setCards, payme
   // --- Card Logic ---
   const handleSaveCard = () => {
     if (!newCard.name || !newCard.bankName || !newCard.closingDay || !newCard.paymentDay) return;
+    
+    // Save bank to ledger if new
+    if (newCard.bankName) {
+      onAddBank(newCard.bankName);
+    }
+
     const card: Card = {
       id: crypto.randomUUID(),
       name: newCard.name,
@@ -194,11 +211,17 @@ export const CardManager: React.FC<CardManagerProps> = ({ cards, setCards, payme
               <div className="col-span-full md:col-span-1">
                  <label className="block text-xs font-bold text-slate-700 mb-1">引落口座 (銀行名)</label>
                  <input 
+                    list="bank-options"
                     placeholder="例: 三井住友銀行" 
                     className="w-full border p-2 rounded-md text-sm text-slate-900 bg-white"
                     value={newCard.bankName || ''}
                     onChange={e => setNewCard({...newCard, bankName: e.target.value})}
                   />
+                  <datalist id="bank-options">
+                    {savedBanks.map(bank => (
+                      <option key={bank} value={bank} />
+                    ))}
+                  </datalist>
               </div>
 
               <div className="flex gap-2">
