@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, Calendar as CalendarIcon, CreditCard, Menu } from 'lucide-react';
+import { LayoutDashboard, Calendar as CalendarIcon, CreditCard } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { CalendarView } from './components/CalendarView';
 import { CardManager } from './components/CardManager';
@@ -8,8 +8,7 @@ import { Card, Payment, BankSummary, ViewMode, getActualDate } from './types';
 const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  
   // Mock initial data load (in real app, use localStorage or DB)
   const [cards, setCards] = useState<Card[]>(() => {
     const saved = localStorage.getItem('crediflow_cards');
@@ -88,74 +87,78 @@ const App: React.FC = () => {
       setPayments(prev => prev.map(p => p.id === id ? { ...p, isPaid: !p.isPaid } : p));
   };
 
-  const NavItem = ({ mode, icon: Icon, label }: { mode: ViewMode, icon: any, label: string }) => (
-    <button
-      onClick={() => {
-        setViewMode(mode);
-        setIsMobileMenuOpen(false);
-      }}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl w-full transition-all duration-200
-        ${viewMode === mode 
-          ? 'bg-brand-50 text-brand-700 font-bold shadow-sm' 
-          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-        }
-      `}
-    >
-      <Icon className={`w-5 h-5 ${viewMode === mode ? 'text-brand-600' : 'text-slate-400'}`} />
-      <span>{label}</span>
-    </button>
-  );
+  const NavItem = ({ mode, icon: Icon, label }: { mode: ViewMode, icon: any, label: string }) => {
+    const isActive = viewMode === mode;
+    return (
+      <button
+        onClick={() => setViewMode(mode)}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200
+          ${isActive 
+            ? 'bg-slate-800 text-white shadow-md' 
+            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+          }
+        `}
+      >
+        <Icon className={`w-4 h-4 ${isActive ? 'text-brand-300' : ''}`} />
+        <span className="font-medium text-sm">{label}</span>
+      </button>
+    );
+  };
+
+  const MobileNavItem = ({ mode, icon: Icon, label }: { mode: ViewMode, icon: any, label: string }) => {
+    const isActive = viewMode === mode;
+    return (
+      <button
+        onClick={() => setViewMode(mode)}
+        className={`flex flex-col items-center justify-center py-2 px-4 transition-colors w-full
+          ${isActive ? 'text-brand-600' : 'text-slate-400'}
+        `}
+      >
+        <div className={`p-1 rounded-full mb-1 transition-all ${isActive ? 'bg-brand-50' : 'bg-transparent'}`}>
+           <Icon className={`w-6 h-6 ${isActive ? 'fill-brand-600/20' : ''}`} />
+        </div>
+        <span className="text-[10px] font-bold">{label}</span>
+      </button>
+    );
+  };
 
   return (
-    <div className="min-h-screen flex bg-[#f8fafc]">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col">
       
-      {/* Sidebar (Desktop) */}
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-100 p-6 fixed h-full z-10">
-        <div className="flex items-center gap-2 mb-10 px-2">
-          <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-brand-200">
+      {/* Desktop Header */}
+      <header className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-brand-200">
             C
           </div>
           <h1 className="text-xl font-bold text-slate-800 tracking-tight">CrediFlow</h1>
         </div>
         
-        <nav className="space-y-2 flex-1">
+        <nav className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200/50">
           <NavItem mode="dashboard" icon={LayoutDashboard} label="ダッシュボード" />
           <NavItem mode="calendar" icon={CalendarIcon} label="カレンダー" />
           <NavItem mode="cards" icon={CreditCard} label="カード・請求管理" />
         </nav>
 
-        <div className="text-xs text-slate-400 px-4">
-          <p>&copy; 2024 CrediFlow</p>
+        <div className="w-[120px] flex justify-end">
+           {/* Placeholder for future user menu */}
+           <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
+             <span className="text-xs font-bold">U</span>
+           </div>
         </div>
-      </aside>
+      </header>
+
+      {/* Mobile Header */}
+      <header className="md:hidden flex items-center justify-center py-3 bg-white border-b border-slate-200 sticky top-0 z-20">
+         <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-brand-600 rounded-md flex items-center justify-center text-white font-bold text-sm">C</div>
+            <h1 className="font-bold text-slate-800 text-lg">CrediFlow</h1>
+         </div>
+      </header>
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64 p-4 md:p-8 pb-24 md:pb-8">
-        
-        {/* Mobile Header */}
-        <div className="md:hidden flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold">C</div>
-            <h1 className="font-bold text-slate-800">CrediFlow</h1>
-          </div>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600">
-            <Menu className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Mobile Menu Dropdown */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-white absolute top-20 left-4 right-4 rounded-2xl shadow-xl border border-slate-100 p-4 z-50 animate-in fade-in slide-in-from-top-4">
-             <nav className="space-y-2">
-                <NavItem mode="dashboard" icon={LayoutDashboard} label="ダッシュボード" />
-                <NavItem mode="calendar" icon={CalendarIcon} label="カレンダー" />
-                <NavItem mode="cards" icon={CreditCard} label="カード・請求管理" />
-            </nav>
-          </div>
-        )}
-
-        {/* Content Area */}
-        <div className="max-w-5xl mx-auto">
+      <main className="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 pb-24 md:pb-12">
+        <div className="animate-fade-in">
           {viewMode === 'dashboard' && (
             <Dashboard 
               bankSummaries={bankSummaries} 
@@ -188,7 +191,13 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Mobile Bottom Bar (Alternative to top menu if preferred, sticking to top hamburger for now) */}
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around pb-safe z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <MobileNavItem mode="dashboard" icon={LayoutDashboard} label="ホーム" />
+        <MobileNavItem mode="calendar" icon={CalendarIcon} label="カレンダー" />
+        <MobileNavItem mode="cards" icon={CreditCard} label="カード管理" />
+      </nav>
+
     </div>
   );
 };
