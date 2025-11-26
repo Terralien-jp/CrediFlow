@@ -1,20 +1,28 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Card, Payment } from "../types";
+import { format } from "date-fns";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Parse unstructured text (SMS, Email) into payment details
-export const parsePaymentText = async (text: string, availableCards: Card[]): Promise<{ amount: number; cardId?: string; paymentDay?: number, paymentMonth?: number } | null> => {
+export const parsePaymentText = async (text: string, availableCards: Card[], referenceDate: Date = new Date()): Promise<{ amount: number; cardId?: string; paymentDay?: number, paymentMonth?: number, paymentYear?: number } | null> => {
   try {
     const cardNames = availableCards.map(c => `${c.name} (ID: ${c.id})`).join(", ");
+    const todayStr = format(referenceDate, "yyyy年M月d日");
     
     const prompt = `
       Analyze the following Japanese or English text representing a credit card payment notification.
-      Extract the payment amount, the payment date (day and month), and identify which credit card it belongs to based on the provided list.
+      Today is ${todayStr}.
+      
+      Extract:
+      1. Payment amount
+      2. Which credit card it belongs to (from the provided list)
+      3. The target payment year and month. 
+         - If the text says "October bill" or "10月分", that is the target.
+         - If the text only gives a payment date (e.g., "Debit on 10th"), infer the correct month/year based on Today (${todayStr}).
+           For example, if today is Nov 20th and payment is "10th", it implies Dec 10th (next month).
       
       Available Cards List: [${cardNames}]
-      
-      If the card is not explicitly named but can be inferred, do so. If unknown, leave cardId null.
       
       Text to analyze: "${text}"
     `;
@@ -30,7 +38,8 @@ export const parsePaymentText = async (text: string, availableCards: Card[]): Pr
             amount: { type: Type.NUMBER },
             cardId: { type: Type.STRING, nullable: true },
             paymentDay: { type: Type.INTEGER, nullable: true },
-            paymentMonth: { type: Type.INTEGER, nullable: true },
+            paymentMonth: { type: Type.INTEGER, nullable: true, description: "1-12 for Month" },
+            paymentYear: { type: Type.INTEGER, nullable: true },
           },
           required: ["amount"]
         }

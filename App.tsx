@@ -4,6 +4,7 @@ import { Dashboard } from './components/Dashboard';
 import { CalendarView } from './components/CalendarView';
 import { CardManager } from './components/CardManager';
 import { Card, Payment, BankSummary, ViewMode, getActualDate } from './types';
+import { addMonths } from 'date-fns';
 
 const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -41,13 +42,16 @@ const App: React.FC = () => {
   const bankSummaries: BankSummary[] = useMemo(() => {
     const summaryMap = new Map<string, BankSummary>();
 
-    // Filter payments for the currently selected month
-    const monthlyPayments = payments.filter(p => 
-        p.month === currentDate.getMonth() && 
-        p.year === currentDate.getFullYear()
-    );
+    const nextMonthDate = addMonths(currentDate, 1);
 
-    monthlyPayments.forEach(payment => {
+    // Filter payments for Current Month AND Next Month
+    const targetPayments = payments.filter(p => {
+        const isCurrent = p.month === currentDate.getMonth() && p.year === currentDate.getFullYear();
+        const isNext = p.month === nextMonthDate.getMonth() && p.year === nextMonthDate.getFullYear();
+        return isCurrent || isNext;
+    });
+
+    targetPayments.forEach(payment => {
       const card = cards.find(c => c.id === payment.cardId);
       if (!card) return;
 
@@ -56,8 +60,8 @@ const App: React.FC = () => {
       const groupKey = `${card.bankName}-${accountHolder}`;
 
       // Calculate actual payment date for this specific month
-      const actualPaymentDay = getActualDate(currentDate.getFullYear(), currentDate.getMonth(), card.paymentDay);
-      const paymentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), actualPaymentDay);
+      const actualPaymentDay = getActualDate(payment.year, payment.month, card.paymentDay);
+      const paymentDate = new Date(payment.year, payment.month, actualPaymentDay);
 
       if (!summaryMap.has(groupKey)) {
         summaryMap.set(groupKey, {
@@ -165,6 +169,8 @@ const App: React.FC = () => {
               cards={cards}
               currentDate={currentDate}
               onTogglePaid={togglePaymentPaidStatus}
+              payments={payments}
+              onMonthChange={setCurrentDate}
             />
           )}
 
